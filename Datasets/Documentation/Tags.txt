@@ -1,0 +1,20 @@
+tags = [['register', 'signup', 'sign-up'],
+            ['password', 'recovery'],
+            ['chat', 'bot'],
+            ['cart', 'bag', 'basket'],
+            ['profile', 'account', 'user', 'settings'],
+            ['coupon', 'promotion'],
+            ['wp-login', 'login', 'log-in', 'signin', 'sign-in', 'signout', 'sign-out', 'logout', 'log-out'],
+            ['contact'],
+            ['search'],
+            ['href']]
+
+    tagsPerCategory = {
+        'RegisterForm': tags[0],
+        'RstPss': tags[1],
+        'ChatBot': tags[2],
+        'BagCart': tags[3],
+        'AccountSettings': tags[4],
+        'CouponPromotion': tags[5],
+        'LoginLogout': tags[6],
+    }
