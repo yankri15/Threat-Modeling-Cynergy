@@ -1,14 +1,16 @@
 import os
+import PyPDF2
 import re
-import time
 import spacy
-import gensim
-import torch
-from transformers import BertModel, BertTokenizer, BertForSequenceClassification
+from spacy.lang.en.stop_words import STOP_WORDS
+from spacy.lang.en import English
+from string import punctuation
 
 class SpacyEngine:
     def __init__(self):
         self.nlp = spacy.load("en_core_web_sm")
+        self.stopwords = set(STOP_WORDS)
+        self.parser = English()
 
     def preprocess_text(self, text):
         # Perform basic text cleaning
@@ -23,27 +25,79 @@ class SpacyEngine:
         tokens = [token.text for token in doc]
         return tokens
 
-    def process_text(self, text):
-        # Process the text using spaCy's nlp 
-        doc = self.nlp(text)
+    def remove_stopwords(self, tokens):
+        # Remove stop words from the tokens
+        filtered_tokens = [token for token in tokens if token not in self.stopwords]
+        return filtered_tokens
 
-        # Iterate over the entities in the text
-        for ent in doc.ents:
-            # Print the entity text and label
-            print(ent.text, ent.label_)
+    def lemmatize_tokens(self, tokens):
+        # Lemmatize the tokens
+        lem_tokens = [self.nlp(token)[0].lemma_ for token in tokens]
+        return lem_tokens
 
-        # Add any additional processing or analysis here later
+    def process_pdf(self, filepath):
+        # Extract text from the PDF file
+        with open(filepath, "rb") as f:
+            pdf = PyPDF2.PdfFileReader(f)
+            pages = [pdf.getPage(i).extractText() for i in range(pdf.getNumPages())]
+            text = " ".join(pages)
+            text = self.preprocess_text(text)
+            tokens = self.tokenize_text(text)
+            tokens = self.remove_stopwords(tokens)
+            tokens = self.lemmatize_tokens(tokens)
+            return tokens
 
-    def process_dataset(self, path):
-        for subdir, dirs, files in os.walk(path):
-            for file in files:
-                filepath = subdir + os.sep + file
-                with open(filepath, "r") as f:
-                    text = f.read()
-                    text = self.preprocess_text(text)
-                    self.process_text(text)
 
 
+# Old code
+
+# class SpacyEngine:
+#     def __init__(self):
+#         self.nlp = spacy.load("en_core_web_sm")
+
+#     def preprocess_text(self, text):
+#         # Perform basic text cleaning
+#         text = text.lower()
+#         text = re.sub(r"[^a-zA-Z0-9]", " ", text)
+#         text = re.sub(r"\s+", " ", text)
+#         return text
+
+#     def remove_stopwords(self, tokens):
+#         # Remove stop words from a list of tokens.
+#         doc = self.nlp(" ".join(tokens))
+#         return [token.text for token in doc if not token.is_stop]
+
+#     def tokenize_text(self, text):
+#         # Tokenize the text using spaCy's built-in tokenization method
+#         doc = self.nlp(text)
+#         tokens = [token.text for token in doc]
+#         return tokens
+
+#     def process_text(self, text):
+#         # Process the text using spaCy's nlp 
+#         doc = self.nlp(text)
+
+#         # Iterate over the entities in the text
+#         for ent in doc.ents:
+#             # Print the entity text and label
+#             print(ent.text, ent.label_)
+
+#         # Add any additional processing or analysis here later
+
+#     def process_dataset(self, path):
+#         for subdir, dirs, files in os.walk(path):
+#             for file in files:
+#                 filepath = subdir + os.sep + file
+#                 if filepath.endswith(".pdf"):
+#                     with open(filepath, "rb") as f:
+#                         pdf = PyPDF2.PdfFileReader(f)
+#                         text = ""
+#                         for page in pdf.pages:
+#                             text += page.extract_text()
+#                     text = self.preprocess_text(text)
+#                     self.process_text(text)
+
+'''
 class PytorchBERT():
     def __init__(self):
         self.model = BertModel.from_pretrained('bert-base-uncased')
@@ -117,7 +171,6 @@ class GensimEngine:
         return total_time
 
 
-
 def test_spacy():
     """
     Testing the spacy engine
@@ -155,3 +208,4 @@ def test_gensim_engine():
     # Test the performance of the engine on the dataset
     processing_time = gensim_engine.test_performance()
     print("GensimEngine processed the dataset in {:.2f} seconds.".format(processing_time))
+'''

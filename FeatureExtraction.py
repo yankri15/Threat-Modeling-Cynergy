@@ -1,5 +1,5 @@
 import pandas as pd
-from DataPreProccessing import SpacyEngine, PytorchBERT, GensimEngine
+from DataPreProcessing import SpacyEngine, PytorchBERT, GensimEngine
 from sklearn.feature_extraction.text import CountVectorizer, TfidfVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 
