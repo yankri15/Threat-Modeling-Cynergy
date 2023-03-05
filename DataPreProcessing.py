@@ -1,16 +1,14 @@
 import os
-import PyPDF2
 import re
 import spacy
 from spacy.lang.en.stop_words import STOP_WORDS
-from spacy.lang.en import English
-from string import punctuation
+from PyPDF2 import PdfFileReader
+
+
 
 class SpacyEngine:
     def __init__(self):
         self.nlp = spacy.load("en_core_web_sm")
-        self.stopwords = set(STOP_WORDS)
-        self.parser = English()
 
     def preprocess_text(self, text):
         # Perform basic text cleaning
@@ -27,25 +25,35 @@ class SpacyEngine:
 
     def remove_stopwords(self, tokens):
         # Remove stop words from the tokens
-        filtered_tokens = [token for token in tokens if token not in self.stopwords]
-        return filtered_tokens
+        return [token for token in tokens if token not in STOP_WORDS]
 
     def lemmatize_tokens(self, tokens):
-        # Lemmatize the tokens
-        lem_tokens = [self.nlp(token)[0].lemma_ for token in tokens]
-        return lem_tokens
+        # Lemmatize the tokens using spaCy's built-in lemmatization method
+        doc = self.nlp(" ".join(tokens))
+        lemmas = [token.lemma_ for token in doc]
+        return lemmas
 
-    def process_pdf(self, filepath):
-        # Extract text from the PDF file
-        with open(filepath, "rb") as f:
-            pdf = PyPDF2.PdfFileReader(f)
-            pages = [pdf.getPage(i).extractText() for i in range(pdf.getNumPages())]
-            text = " ".join(pages)
-            text = self.preprocess_text(text)
-            tokens = self.tokenize_text(text)
-            tokens = self.remove_stopwords(tokens)
-            tokens = self.lemmatize_tokens(tokens)
-            return tokens
+    def process_text(self, text):
+        # Process the text using spaCy's nlp 
+        doc = self.nlp(text)
+
+        # Iterate over the entities in the text
+        for ent in doc.ents:
+            # Print the entity text and label
+            print(ent.text, ent.label_)
+
+        # Add any additional processing or analysis here later
+
+    def process_pdf(self, path):
+        with open(path, "rb") as f:
+            reader = PdfFileReader(f)
+            for page in reader.pages:
+                text = page.text
+                text = self.preprocess_text(text)
+                tokens = self.tokenize_text(text)
+                tokens = self.remove_stopwords(tokens)
+                tokens = self.lemmatize_tokens(tokens)
+                # Do whatever you want with the processed tokens here
 
 
 
