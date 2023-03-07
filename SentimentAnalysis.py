@@ -117,9 +117,6 @@ from pdfminer.converter import TextConverter
 from pdfminer.layout import LAParams
 from pdfminer.pdfpage import PDFPage
 
-# Need to use the tags to determaine which sentences have them and classify them as positive... work with dataframe and build a csv file with the data
-
-
 # Define the tags and their corresponding categories
 tags = [['register', 'signup', 'sign-up'],
         ['password', 'recovery'],
