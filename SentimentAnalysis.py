@@ -3,7 +3,7 @@ import nltk
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-from nltk.sentiment.vader import SentimentIntensityAnalyzer
+# from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from sklearn.naive_bayes import MultinomialNB
 
 from tensorflow.keras.preprocessing.sequence import pad_sequences
@@ -34,7 +34,7 @@ x = df['sentence']
 y = df['threat']
 
 # Split into training and validation sets
-train_text, val_text, train_labels, val_labels = train_test_split(x, y, test_size=0.25 , random_state=50)
+train_text, val_text, train_labels, val_labels = train_test_split(x, y, test_size=0.25 , random_state=42)
 
 # Bag of Words Vectorization-Based Model
 bow_vectorizer = CountVectorizer()
@@ -48,9 +48,9 @@ mnb_predictions = mnb.predict(bow_val)
 print('Bag of Words Model Accuracy:', accuracy_score(val_labels, mnb_predictions))
 
 # VADER Model
-sid = SentimentIntensityAnalyzer()
-vader_predictions = [int(sid.polarity_scores(sentence)['compound'] >= 0.05) for sentence in val_text]
-print('VADER Model Accuracy:', accuracy_score(val_labels, vader_predictions))
+# sid = SentimentIntensityAnalyzer()
+# vader_predictions = [int(sid.polarity_scores(sentence)['compound'] >= 0.05) for sentence in val_text]
+# print('VADER Model Accuracy:', accuracy_score(val_labels, vader_predictions))
 
 
 # Deep learning model
@@ -78,7 +78,7 @@ model.add(Dense(units=1, activation='sigmoid'))
 model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
 # Train the model
-model.fit(train_padded, train_labels, validation_data=(val_padded, val_labels), epochs=10, batch_size=16)
+model.fit(train_padded, train_labels, validation_data=(val_padded, val_labels), epochs=10, batch_size=32)
 
 # Evaluate the model
 loss, accuracy = model.evaluate(val_padded, val_labels)
