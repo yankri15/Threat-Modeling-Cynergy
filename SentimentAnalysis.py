@@ -34,7 +34,7 @@ x = df['sentence']
 y = df['threat']
 
 # Split into training and validation sets
-train_text, val_text, train_labels, val_labels = train_test_split(x, y, test_size=0.25, random_state=42)
+train_text, val_text, train_labels, val_labels = train_test_split(x, y, test_size=0.25 , random_state=50)
 
 # Bag of Words Vectorization-Based Model
 bow_vectorizer = CountVectorizer()
@@ -78,7 +78,7 @@ model.add(Dense(units=1, activation='sigmoid'))
 model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
 # Train the model
-model.fit(train_padded, train_labels, validation_data=(val_padded, val_labels), epochs=10, batch_size=8)
+model.fit(train_padded, train_labels, validation_data=(val_padded, val_labels), epochs=10, batch_size=16)
 
 # Evaluate the model
 loss, accuracy = model.evaluate(val_padded, val_labels)
