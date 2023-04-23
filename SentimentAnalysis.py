@@ -5,11 +5,119 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
 # from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from sklearn.naive_bayes import MultinomialNB
-
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from keras.models import Sequential
 from keras.layers import Embedding, LSTM, Dense
 from keras.preprocessing.text import Tokenizer
+import matplotlib.pyplot as plt
+from sklearn.metrics import accuracy_score, confusion_matrix, roc_curve, auc
+from sklearn.metrics import confusion_matrix
+from sklearn.metrics import auc, roc_auc_score, roc_curve
+
+import itertools
+
+import matplotlib.pyplot as plt
+import numpy as np
+from sklearn.model_selection import cross_val_score
+
+
+def plot_confusion_matrix(cm, classes, normalize=False, cmap=plt.cm.Blues):
+    """
+    This function plots the confusion matrix.
+    Normalization can be applied by setting `normalize=True`.
+    """
+    plt.imshow(cm, interpolation='nearest', cmap=cmap)
+    plt.title('Confusion matrix')
+    plt.colorbar()
+    tick_marks = np.arange(len(classes))
+    plt.xticks(tick_marks, classes, rotation=45)
+    plt.yticks(tick_marks, classes)
+
+    if normalize:
+        cm = cm.astype('float') / cm.sum(axis=1)[:, np.newaxis]
+
+    thresh = cm.max() / 2.
+    for i, j in itertools.product(range(cm.shape[0]), range(cm.shape[1])):
+        plt.text(j, i, format(cm[i, j], '.2f' if normalize else 'd'),
+                 horizontalalignment="center",
+                 color="white" if cm[i, j] > thresh else "black")
+
+    plt.tight_layout()
+    plt.ylabel('True label')
+    plt.xlabel('Predicted label')
+
+def plot_bow_model_results(model, val_padded, val_labels):
+    # Fit the model with different alpha values and store the results
+    alphas = np.arange(0.1, 1.0, 0.1)
+    cv_results = []
+    for alpha in alphas:
+        model.set_params(alpha=alpha)
+        scores = cross_val_score(model, val_padded, val_labels, cv=10, scoring='accuracy')
+        cv_results.append(scores.mean())
+
+    # Create accuracy graph
+    plt.plot(alphas, cv_results)
+    plt.title('Bag-of-Words Model Accuracy')
+    plt.xlabel('Alpha')
+    plt.ylabel('Accuracy')
+    plt.show()
+
+    # plot confusion matrix
+    y_pred = model.predict(val_padded)
+    cm = confusion_matrix(val_labels, y_pred)
+    plot_confusion_matrix(cm, classes=['Negative', 'Positive'])
+    plt.title('Confusion Matrix')
+    plt.show()
+
+
+
+
+def plot_dl_model_results(model, val_padded, val_labels):
+    # Fit the model and store the results
+    history = model.fit(val_padded, val_labels, epochs=10, verbose=0, validation_split=0.2)
+
+    # Get predicted probabilities for positive class
+    y_pred_prob = model.predict(val_padded)[:, 0]
+
+    # Compute accuracy and AUC scores
+    accuracy = accuracy_score(val_labels, y_pred_prob.round())
+    auc_score = roc_auc_score(val_labels, y_pred_prob)
+
+    # Compute ROC curve
+    fpr, tpr, thresholds = roc_curve(val_labels, y_pred_prob)
+
+    # Plot ROC curve and print scores
+    plt.plot(fpr, tpr, label='ROC curve (AUC = %0.2f)' % auc_score)
+    plt.plot([0, 1], [0, 1], 'k--')
+    plt.xlim([0.0, 1.0])
+    plt.ylim([0.0, 1.0])
+    plt.xlabel('False Positive Rate')
+    plt.ylabel('True Positive Rate')
+    plt.title('Receiver Operating Characteristic (ROC) Curve')
+    plt.legend(loc="lower right")
+    plt.show()
+
+    print("Accuracy score: {:.2f}%".format(accuracy * 100))
+    print("AUC score: {:.2f}".format(auc_score))
+
+    # Plot accuracy and loss graphs as a function of epochs
+    fig, axs = plt.subplots(2, figsize=(10, 10))
+    axs[0].plot(history.history['accuracy'])
+    axs[0].plot(history.history['val_accuracy'])
+    axs[0].set_title('Model Accuracy')
+    axs[0].set_ylabel('Accuracy')
+    axs[0].set_xlabel('Epoch')
+    axs[0].legend(['train', 'val'], loc='upper left')
+
+    axs[1].plot(history.history['loss'])
+    axs[1].plot(history.history['val_loss'])
+    axs[1].set_title('Model Loss')
+    axs[1].set_ylabel('Loss')
+    axs[1].set_xlabel('Epoch')
+    axs[1].legend(['train', 'val'], loc='upper left')
+
+    plt.show()
+
 
 def get_max_sentence_length(df):
     max_length = 0
@@ -47,6 +155,8 @@ mnb.fit(bow_train, train_labels)
 mnb_predictions = mnb.predict(bow_val)
 print('Bag of Words Model Accuracy:', accuracy_score(val_labels, mnb_predictions))
 
+plot_bow_model_results(mnb, bow_val, val_labels)
+
 # VADER Model
 # sid = SentimentIntensityAnalyzer()
 # vader_predictions = [int(sid.polarity_scores(sentence)['compound'] >= 0.05) for sentence in val_text]
@@ -71,15 +181,17 @@ model = Sequential()
 max_len = get_max_sentence_length(df)
 
 model.add(Embedding(input_dim=vocab_size, output_dim=100, input_length=max_len))
-model.add(LSTM(units=64, dropout=0.2, recurrent_dropout=0.2))
+model.add(LSTM(units=64, dropout=0.15, recurrent_dropout=0.25))
 model.add(Dense(units=1, activation='sigmoid'))
 
 # Compile the model
 model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
 # Train the model
-model.fit(train_padded, train_labels, validation_data=(val_padded, val_labels), epochs=10, batch_size=32)
+model.fit(train_padded, train_labels, validation_data=(val_padded, val_labels), epochs=10, batch_size=64)
 
 # Evaluate the model
 loss, accuracy = model.evaluate(val_padded, val_labels)
 print('Validation accuracy:', accuracy)
+
+plot_dl_model_results(model, val_padded, val_labels)
