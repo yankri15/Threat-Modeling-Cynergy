@@ -3,16 +3,15 @@ import nltk
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score, precision_score, recall_score, f1_score
-# from nltk.sentiment.vader import SentimentIntensityAnalyzer
 from sklearn.naive_bayes import MultinomialNB
 from tensorflow.keras.preprocessing.sequence import pad_sequences
 from keras.models import Sequential
 from keras.layers import Embedding, LSTM, Dense
 from keras.preprocessing.text import Tokenizer
 import matplotlib.pyplot as plt
-from sklearn.metrics import accuracy_score, confusion_matrix, roc_curve, auc
+from sklearn.metrics import accuracy_score, confusion_matrix
 from sklearn.metrics import confusion_matrix
-from sklearn.metrics import auc, roc_auc_score, roc_curve
+
 
 import itertools
 
@@ -70,55 +69,6 @@ def plot_bow_model_results(model, val_padded, val_labels):
     plt.show()
 
 
-
-
-def plot_dl_model_results(model, val_padded, val_labels):
-    # Fit the model and store the results
-    history = model.fit(val_padded, val_labels, epochs=10, verbose=0, validation_split=0.2)
-
-    # Get predicted probabilities for positive class
-    y_pred_prob = model.predict(val_padded)[:, 0]
-
-    # Compute accuracy and AUC scores
-    accuracy = accuracy_score(val_labels, y_pred_prob.round())
-    auc_score = roc_auc_score(val_labels, y_pred_prob)
-
-    # Compute ROC curve
-    fpr, tpr, thresholds = roc_curve(val_labels, y_pred_prob)
-
-    # Plot ROC curve and print scores
-    plt.plot(fpr, tpr, label='ROC curve (AUC = %0.2f)' % auc_score)
-    plt.plot([0, 1], [0, 1], 'k--')
-    plt.xlim([0.0, 1.0])
-    plt.ylim([0.0, 1.0])
-    plt.xlabel('False Positive Rate')
-    plt.ylabel('True Positive Rate')
-    plt.title('Receiver Operating Characteristic (ROC) Curve')
-    plt.legend(loc="lower right")
-    plt.show()
-
-    print("Accuracy score: {:.2f}%".format(accuracy * 100))
-    print("AUC score: {:.2f}".format(auc_score))
-
-    # Plot accuracy and loss graphs as a function of epochs
-    fig, axs = plt.subplots(2, figsize=(10, 10))
-    axs[0].plot(history.history['accuracy'])
-    axs[0].plot(history.history['val_accuracy'])
-    axs[0].set_title('Model Accuracy')
-    axs[0].set_ylabel('Accuracy')
-    axs[0].set_xlabel('Epoch')
-    axs[0].legend(['train', 'val'], loc='upper left')
-
-    axs[1].plot(history.history['loss'])
-    axs[1].plot(history.history['val_loss'])
-    axs[1].set_title('Model Loss')
-    axs[1].set_ylabel('Loss')
-    axs[1].set_xlabel('Epoch')
-    axs[1].legend(['train', 'val'], loc='upper left')
-
-    plt.show()
-
-
 def get_max_sentence_length(df):
     max_length = 0
     for sentence in df['sentence']:
@@ -157,11 +107,6 @@ print('Bag of Words Model Accuracy:', accuracy_score(val_labels, mnb_predictions
 
 plot_bow_model_results(mnb, bow_val, val_labels)
 
-# VADER Model
-# sid = SentimentIntensityAnalyzer()
-# vader_predictions = [int(sid.polarity_scores(sentence)['compound'] >= 0.05) for sentence in val_text]
-# print('VADER Model Accuracy:', accuracy_score(val_labels, vader_predictions))
-
 
 # Deep learning model
 tokenizer = Tokenizer()
@@ -193,5 +138,3 @@ model.fit(train_padded, train_labels, validation_data=(val_padded, val_labels), 
 # Evaluate the model
 loss, accuracy = model.evaluate(val_padded, val_labels)
 print('Validation accuracy:', accuracy)
-
-plot_dl_model_results(model, val_padded, val_labels)
