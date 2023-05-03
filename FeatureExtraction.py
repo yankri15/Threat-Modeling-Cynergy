@@ -78,11 +78,3 @@ class FeatureExtraction:
         X = lda.fit_transform(self.dataset)
         
         return X
-
-# usage
-# dataset = [...]
-# fe = FeatureExtraction(dataset)
-# X, feature_names = fe.bag_of_words()
-# X, feature_names = fe.n_grams()
-# X, feature_names = fe.tf_idf()
-# X = fe.lda()
