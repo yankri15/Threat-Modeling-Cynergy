@@ -92,7 +92,7 @@ x = df['sentence']
 y = df['threat']
 
 # Split into training and validation sets
-train_text, val_text, train_labels, val_labels = train_test_split(x, y, test_size=0.25 , random_state=42)
+train_text, val_text, train_labels, val_labels = train_test_split(x, y, test_size=0.20 , random_state=43)
 
 # Bag of Words Vectorization-Based Model
 bow_vectorizer = CountVectorizer()
