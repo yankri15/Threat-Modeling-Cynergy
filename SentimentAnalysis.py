@@ -138,3 +138,29 @@ model.fit(train_padded, train_labels, validation_data=(val_padded, val_labels), 
 # Evaluate the model
 loss, accuracy = model.evaluate(val_padded, val_labels)
 print('Validation accuracy:', accuracy)
+
+# Notes for further steps to to:
+# Steps to categorize threats by tags using a DNN model:
+
+# 1. Modify the label_threats function to assign tags to sentences containing threats.
+# 2. Update the DataPreProcessing.py file to include the modified label_threats function.
+
+#    - In the label_threats function:
+#      - Create a dataframe to store sentences and their corresponding threat tags.
+#      - Iterate over each sentence.
+#      - Check if the sentence contains any of the threat tags.
+#      - Create a new row with the sentence and its threat tags.
+#      - Add the new row to the dataframe.
+#      - Return the labeled dataframe.
+
+# 3. Train a DNN model using the labeled dataset.
+# 4. Use the trained model to classify sentences and assign tags to the threats.
+
+#    - Load the trained DNN model.
+#    - For each sentence, pass it through the model and get the predicted tag(s).
+#    - Update the dataframe with the predicted tags for the threats.
+
+# 5. Evaluate the performance of the model using appropriate metrics.
+# 6. Use the categorized threats for further analysis or decision-making.
+
+# Make sure to save the modified dataframe with the labeled threats and predicted tags for future use.
