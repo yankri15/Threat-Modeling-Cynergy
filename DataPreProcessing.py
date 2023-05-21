@@ -84,6 +84,7 @@ def extract_text(file_path):
         return tokens
 
 # Label each sentence by determaining if the sentence contains a potential threat
+# Need to upload working chnages to here (problem with pc)
 def label_threats(sentences, tags):
     df = pd.DataFrame(columns=["sentence", "threat"])
     for sentence in sentences:
