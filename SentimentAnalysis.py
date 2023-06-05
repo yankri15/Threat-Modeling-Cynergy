@@ -133,7 +133,7 @@ model.add(Dense(units=1, activation='sigmoid'))
 model.compile(loss='binary_crossentropy', optimizer='adam', metrics=['accuracy'])
 
 # Train the model
-model.fit(train_padded, train_labels, validation_data=(val_padded, val_labels), epochs=10, batch_size=64)
+model.fit(train_padded, train_labels, validation_data=(val_padded, val_labels), epochs=10, batch_size=256)
 
 # Evaluate the model
 loss, accuracy = model.evaluate(val_padded, val_labels)
