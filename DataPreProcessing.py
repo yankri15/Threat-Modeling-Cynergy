@@ -137,16 +137,16 @@ def extract_text(file_path):
 # Label each sentence by determaining if the sentence contains a potential threat
 # Need to upload working chnages to here (problem with pc)
 # def label_threats(sentences, tags):
-    df = pd.DataFrame(columns=["sentence", "threat"])
-    for sentence in sentences:
-        if any(tag in sentence for tag in tags):
-            #label it as a positive match (1)
-            new_row = pd.DataFrame({"sentence": [sentence], "threat": [1]})
-        else:
-            #label it as a negative match (0)
-            new_row = pd.DataFrame({"sentence": [sentence], "threat": [0]})
-        df = pd.concat([df, new_row], ignore_index=True)
-    return df
+    # df = pd.DataFrame(columns=["sentence", "threat"])
+    # for sentence in sentences:
+    #     if any(tag in sentence for tag in tags):
+    #         #label it as a positive match (1)
+    #         new_row = pd.DataFrame({"sentence": [sentence], "threat": [1]})
+    #     else:
+    #         #label it as a negative match (0)
+    #         new_row = pd.DataFrame({"sentence": [sentence], "threat": [0]})
+    #     df = pd.concat([df, new_row], ignore_index=True)
+    # return df
 
 def label_threats(sentences, keywords, keywords_per_feature):
     df = pd.DataFrame(columns=["sentence"] + list(keywords_per_feature.keys()))
@@ -235,12 +235,13 @@ processed_text_3 = extract_text(train_path_3)
 processed_text_4 = extract_text(train_path_4)
 processed_text_5 = extract_text(train_path_5)
 processed_text_6 = extract_text(train_path_6)
-processed_text_7 = extract_text(train_path_7)
-processed_text_8 = extract_text(train_path_8)
-processed_text_9 = extract_text(train_path_9)
-processed_text_10 = extract_text(train_path_10)
+# processed_text_7 = extract_text(train_path_7)
+# processed_text_8 = extract_text(train_path_8)
+# processed_text_9 = extract_text(train_path_9)
+# processed_text_10 = extract_text(train_path_10)
 
-processed_sentences = processed_text_1 + processed_text_2 + processed_text_3 + processed_text_4 + processed_text_5 + processed_text_6 + processed_text_7 + processed_text_8 + processed_text_9 + processed_text_10
+# processed_sentences = processed_text_1 + processed_text_2 + processed_text_3 + processed_text_4 + processed_text_5 + processed_text_6 + processed_text_7 + processed_text_8 + processed_text_9 + processed_text_10
+processed_sentences = processed_text_1 + processed_text_2 + processed_text_3 + processed_text_4 + processed_text_5 + processed_text_6
 labeled_df = label_threats(processed_sentences, keywords, keywordsPerFeature)
 labeled_df = clean_dataframe(labeled_df)
 
