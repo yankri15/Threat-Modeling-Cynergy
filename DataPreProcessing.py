@@ -235,13 +235,13 @@ processed_text_3 = extract_text(train_path_3)
 processed_text_4 = extract_text(train_path_4)
 processed_text_5 = extract_text(train_path_5)
 processed_text_6 = extract_text(train_path_6)
-# processed_text_7 = extract_text(train_path_7)
-# processed_text_8 = extract_text(train_path_8)
+processed_text_7 = extract_text(train_path_7)
+processed_text_8 = extract_text(train_path_8)
 # processed_text_9 = extract_text(train_path_9)
 # processed_text_10 = extract_text(train_path_10)
 
 # processed_sentences = processed_text_1 + processed_text_2 + processed_text_3 + processed_text_4 + processed_text_5 + processed_text_6 + processed_text_7 + processed_text_8 + processed_text_9 + processed_text_10
-processed_sentences = processed_text_1 + processed_text_2 + processed_text_3 + processed_text_4 + processed_text_5 + processed_text_6
+processed_sentences = processed_text_1 + processed_text_2 + processed_text_3 + processed_text_4 + processed_text_5 + processed_text_6 + processed_text_7 + processed_text_8
 labeled_df = label_threats(processed_sentences, keywords, keywordsPerFeature)
 labeled_df = clean_dataframe(labeled_df)
 
