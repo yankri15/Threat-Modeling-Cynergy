@@ -14,12 +14,6 @@ nlp.max_length = 3000000
 nltk.download('punkt')
 
 # List of tags I got from "Cynergy" in order to detect potential cyber security threats in documentations files.
-tags = ['register', 'signup', 'sign-up', 'password', 'recovery', 'chat', 'bot',
-        'cart', 'bag', 'basket', 'profile', 'account', 'user', 'settings', 'coupon', 
-        'promotion', 'wp-login', 'login', 'log-in', 'signin', 'sign-in', 'signout', 
-        'sign-out', 'logout', 'log-out', 'contact', 'search', 'href']
-
-
 keywords = [['register', 'signup', 'sign-up', 'join'], ['password', 'recovery', 'reset', 'forgot'],
             ['chat', 'bot', 'support'], ['cart', 'bag', 'basket', 'checkout'], ['profile', 'account', 'user', 'settings', 'dashboard'],
             ['coupon', 'promotion', 'discount'], ['wp-login', 'login', 'log-in', 'signin', 'sign-in', 'signout', 'sign-out', 'logout', 'log-out'],
@@ -77,7 +71,7 @@ def preprocess_text(text):
     sentences = text.split("\n")
     sentences = [sentence.strip() for sentence in sentences if sentence.strip()]
     sentences = [re.sub(r"^\s+|\s+$", "", sentence) for sentence in sentences]
-    sentences = [s for s in sentences if len(s) >= 5]
+    sentences = [s for s in sentences if len(s.split()) >= 3]
     text = "\n".join(sentences)
     return text
 
@@ -134,19 +128,6 @@ def extract_text(file_path):
         tokens = lemmatize_sentences(tokens)
         return tokens
 
-# Label each sentence by determaining if the sentence contains a potential threat
-# Need to upload working chnages to here (problem with pc)
-# def label_threats(sentences, tags):
-    # df = pd.DataFrame(columns=["sentence", "threat"])
-    # for sentence in sentences:
-    #     if any(tag in sentence for tag in tags):
-    #         #label it as a positive match (1)
-    #         new_row = pd.DataFrame({"sentence": [sentence], "threat": [1]})
-    #     else:
-    #         #label it as a negative match (0)
-    #         new_row = pd.DataFrame({"sentence": [sentence], "threat": [0]})
-    #     df = pd.concat([df, new_row], ignore_index=True)
-    # return df
 
 def label_threats(sentences, keywords, keywords_per_feature):
     df = pd.DataFrame(columns=["sentence"] + list(keywords_per_feature.keys()))
@@ -171,79 +152,88 @@ def label_threats(sentences, keywords, keywords_per_feature):
     return df
 
 
-# Count number of sentences that were classified as threats and non - threats
-# def count_threats(df):
-#     num_threats = df[df['threat'] == 1].shape[0]
-#     num_non_threats = df[df['threat'] == 0].shape[0]
-#     return num_threats, num_non_threats
-
 def count_threats(df, keywords_per_feature):
     num_threats = {}
-    num_non_threats = {}
     total_threats = 0
-    total_non_threats = 0
     
-    # Count the number of sentences classified as threats and non-threats for each category
+    # Count the number of sentences classified as threats for each category
     for category in keywords_per_feature.keys():
-        num_threats[category] = df[df[category] == 1].shape[0]
-        num_non_threats[category] = df[df[category] == 0].shape[0]
-        total_threats += num_threats[category]
-        total_non_threats += num_non_threats[category]
+        if category in df.columns:
+            num_threats[category] = df[df[category] == 1].shape[0]
+            total_threats += num_threats[category]
+        else:
+            num_threats[category] = 0
     
     # Print the counts for each category
-    for category in keywords_per_feature.keys():
-        print(f"Category: {category}")
-        print(f"Number of threats: {num_threats[category]}")
-        print(f"Number of non-threats: {num_non_threats[category]}")
-        print()
+    for category, threats_count in num_threats.items():
+        if category in df.columns:
+            print(f"Category: {category}")
+            print(f"Number of threats: {threats_count}")
+            print()
     
     # Print the total counts
+    total_non_threats = df.shape[0] - total_threats
+    total_sentences = df.shape[0]
     print("Total Counts:")
     print(f"Total number of threats: {total_threats}")
     print(f"Total number of non-threats: {total_non_threats}")
-    
-    return num_threats, num_non_threats
-
-
+    print(f"Total number of sentences: {total_sentences}")
 
 
 # Clean the dataframe by removing any noise left after initial prprocessing phase
 def clean_dataframe(df):
+    # Remove periods from sentences
     df["sentence"] = df["sentence"].apply(lambda x: x.replace(".", ""))
-    # Remove sentences containing only one word
-    df = df[df["sentence"].str.split().apply(len) > 1]
+
+    # Remove sentences containing less than 3 words
+    df = df[df["sentence"].str.split().apply(len) >= 3]
+
+    # Remove duplicate sentences
+    df = df.drop_duplicates(subset=["sentence"])
+
+    # Reset the index
     df = df.reset_index(drop=True)
+
     return df
 
 
-# Set up paths for train and test PDFs
-train_path_1 = "Datasets/Documentation/CyberArk-and-Workfusion-IA2017Sunbird-integration-v3.pdf"
-train_path_2 = "Datasets/Documentation/Desktop Analytics Solution - APA 7.0.pdf"
-train_path_3 = "Datasets/Documentation/HPE_AWB_Guide_17.20.pdf"
-train_path_4 = "Datasets/Documentation/SIS_1131_Deployment.pdf"
-train_path_5 = "Datasets/Documentation/Whatfix Implementation and Security Document.pdf"
-train_path_6 = "Datasets/Documentation/BSM_Integrations_HPOM.pdf"
-train_path_7 = "Datasets/Documentation/fortiweb-v6.1.0-admin-guide.pdf"
-train_path_8 = "Datasets/Documentation/db2z_12_adminbook.pdf"
-train_path_9 = "Datasets/Documentation/pingfederate-110.pdf"
-train_path_10 = "Datasets/Documentation/sg246098.pdf"
+def remove_categories(df, min_threats):
+    # Iterate over each column except the "sentence" column
+    for column in df.columns:
+        if column != "sentence":
+            # Count the number of 1s in the column
+            num_threats = df[column].sum()
+            
+            # Check if the number of threats is less than min_threats
+            if num_threats < min_threats:
+                # Remove the column from the dataframe
+                df = df.drop(column, axis=1)
+    
+    return df
 
-# Extract text from train PDFs and combine into one text file
-processed_text_1 = extract_text(train_path_1)
-processed_text_2 = extract_text(train_path_2)
-processed_text_3 = extract_text(train_path_3)
-processed_text_4 = extract_text(train_path_4)
-processed_text_5 = extract_text(train_path_5)
-processed_text_6 = extract_text(train_path_6)
-processed_text_7 = extract_text(train_path_7)
-processed_text_8 = extract_text(train_path_8)
-# processed_text_9 = extract_text(train_path_9)
-# processed_text_10 = extract_text(train_path_10)
 
-# processed_sentences = processed_text_1 + processed_text_2 + processed_text_3 + processed_text_4 + processed_text_5 + processed_text_6 + processed_text_7 + processed_text_8 + processed_text_9 + processed_text_10
-processed_sentences = processed_text_1 + processed_text_2 + processed_text_3 + processed_text_4 + processed_text_5 + processed_text_6 + processed_text_7 + processed_text_8
+train_paths = [
+    "Datasets/Documentation/CyberArk-and-Workfusion-IA2017Sunbird-integration-v3.pdf",
+    "Datasets/Documentation/Desktop Analytics Solution - APA 7.0.pdf",
+    "Datasets/Documentation/HPE_AWB_Guide_17.20.pdf",
+    "Datasets/Documentation/SIS_1131_Deployment.pdf",
+    "Datasets/Documentation/Whatfix Implementation and Security Document.pdf",
+    "Datasets/Documentation/BSM_Integrations_HPOM.pdf",
+    "Datasets/Documentation/fortiweb-v6.1.0-admin-guide.pdf",
+    "Datasets/Documentation/db2z_12_adminbook.pdf",
+    "Datasets/Documentation/pingfederate-110.pdf",
+    "Datasets/Documentation/sg246098.pdf"
+]
+
+processed_sentences = []
+for path in train_paths:
+    processed_text = extract_text(path)
+    processed_sentences.extend(processed_text)
+
 labeled_df = label_threats(processed_sentences, keywords, keywordsPerFeature)
 labeled_df = clean_dataframe(labeled_df)
+labeled_df = remove_categories(labeled_df, 100)
+
 
 count_threats(labeled_df, keywordsPerFeature)
 
