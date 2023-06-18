@@ -11,3 +11,192 @@ V Evaluate the model: After training, evaluate the model's performance on a test
 Model Improvement: Based on the model's performance, I might need to tweak its parameters or structure. This could involve adding more layers to the model, changing the number of units in the LSTM layers, or using techniques like dropout for regularization.
 
 Threat Prediction: Once i'm satisfied with the model's performance, I can use it to predict the threat tags of new sentences.
+
+for the first way of making the ouputs layers:
+each output layer will output a probability between 0 and 1, indicating the likelihood that a sentence contains
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+Your code looks well-structured and seems to correctly implement a LSTM model for text classification in PyTorch. Here are some points to consider:
+
+CUDA Device: Your code correctly checks for CUDA availability and uses either a GPU or CPU based on what's available. This is good practice.
+
+Preprocessing: The text preprocessing steps (tokenization and padding) are correctly implemented. You are using Keras' Tokenizer, which is fine, but you could also consider using PyTorch's text preprocessing tools for consistency.
+
+Model Definition: The LSTM model you defined seems appropriate for a text classification task. You have an embedding layer, a LSTM layer, a dropout layer, and a final fully connected layer. You use sigmoid activation for the output, which is appropriate for binary or multi-label classification.
+
+Training Loop: Your training loop looks good. You correctly zero out the gradients before backpropagation, apply the loss, and perform a backpropagation step.
+
+Evaluation: Your evaluation code calculates accuracy for each output category, which is a good approach for multi-label classification tasks.
+
+////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+I implemented the next points in my code:
+
+1. Use GPU for DataLoader - use pin_memory=True in my DataLoader.
+2. Move data to device in DataLoader loop - I have already moved X_train, X_test, y_train, and y_test to device before my DataLoader loops. However, inside the loop, I'm again moving inputs and labels to the device. This is redundant and I can remove the .to(device) inside my DataLoader loops.
+3. Monitor Validation Loss - I want to monitor validation loss (or some validation metric) during training to check for overfitting.
+4. Early Stopping - implement early stopping in my training loop. This can help prevent overfitting by stopping training when the validation loss stops improving.
+5. Model Checkpointing - I want to save the state of my best model during training, so I can load it for inference later. This is known as model checkpointing.
+
+
+/////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
+OLD:
+
+Test Loss: 1.6530
+Accuracy registerForm: 3.26%
+Accuracy rstPss: 7.86%
+Accuracy chatBot: 12.12%
+Accuracy bagCart: 2.98%
+Accuracy accountSettings: 8.42%
+Accuracy couponPromotion: 8.88%
+Accuracy LoginLogout: 0.01%
+Accuracy contactForm: 11.67%
+Accuracy searchFeature: 0.22%
+Accuracy linksPage: 13.38%
+Accuracy fileUpload: 8.58%
+Accuracy fileDownload: 5.47%
+Accuracy wishlistFeature: 11.35%
+Accuracy compareProducts: 4.19%
+Accuracy reviewFeature: 8.36%
+Accuracy imageGallery: 6.85%
+Accuracy newsletterSubscription: 5.13%
+Accuracy postSubmission: 99.24%
+Accuracy editFeature: 96.48%
+Accuracy deleteFeature: 96.01%
+Accuracy shareReferral: 99.28%
+Accuracy paymentProcess: 97.38%
+Accuracy orderHistory: 97.38%
+Accuracy shipmentTracking: 100.00%
+Accuracy addressManagement: 96.37%
+Accuracy calendarEvents: 99.97%
+Accuracy bookingFeature: 94.83%
+Accuracy forumDiscussion: 96.90%
+Accuracy reportFeedback: 98.51%
+Accuracy ticketSubmission: 96.45%
+Accuracy filterSort: 98.95%
+Accuracy categoryCollection: 96.38%
+Accuracy productListing: 97.84%
+Accuracy invoiceFeature: 98.19%
+
+DATA:
+
+Category: registerForm
+Number of threats: 332
+
+Category: rstPss
+Number of threats: 2268
+
+Category: chatBot
+Number of threats: 2311
+
+Category: accountSettings
+Number of threats: 5936
+
+Category: LoginLogout
+Number of threats: 704
+
+Category: contactForm
+Number of threats: 1892
+
+Category: searchFeature
+Number of threats: 1634
+
+Category: linksPage
+Number of threats: 429
+
+Category: fileUpload
+Number of threats: 1161
+
+Category: fileDownload
+Number of threats: 609
+
+Category: compareProducts
+Number of threats: 136
+
+Category: reviewFeature
+Number of threats: 5455
+
+Category: postSubmission
+Number of threats: 698
+
+Category: editFeature
+Number of threats: 3040
+
+Category: deleteFeature
+Number of threats: 1296
+
+Category: shareReferral
+Number of threats: 2033
+
+Category: orderHistory
+Number of threats: 669
+
+Category: shipmentTracking
+Number of threats: 127
+
+Category: addressManagement
+Number of threats: 1600
+
+Category: bookingFeature
+Number of threats: 372
+
+Category: forumDiscussion
+Number of threats: 113
+
+Category: reportFeedback
+Number of threats: 1126
+
+Category: filterSort
+Number of threats: 809
+
+Category: categoryCollection
+Number of threats: 577
+
+Category: productListing
+Number of threats: 851
+
+Total Counts:
+Total number of threats: 36178
+Total number of non-threats: 16542
+Total number of sentences: 52720
+
+
+NEW:
+
+Epoch 1 Loss: 0.12750186201902913
+Epoch 2 Loss: 0.11701310811527582
+Epoch 3 Loss: 0.11672674822133482
+Epoch 4 Loss: 0.11648125941434109
+Epoch 5 Loss: 0.11642452454044623
+Epoch 6 Loss: 0.11623927291160469
+Epoch 7 Loss: 0.11604170368105308
+Epoch 8 Loss: 0.11598797747370687
+Epoch 9 Loss: 0.11589761598428573
+Epoch 10 Loss: 0.11571100912705538
+Accuracy registerForm: 99.31%
+Accuracy rstPss: 95.93%
+Accuracy chatBot: 95.39%
+Accuracy accountSettings: 88.80%
+Accuracy LoginLogout: 98.51%
+Accuracy contactForm: 96.27%
+Accuracy searchFeature: 97.00%
+Accuracy linksPage: 99.26%
+Accuracy fileUpload: 97.95%
+Accuracy fileDownload: 98.86%
+Accuracy compareProducts: 99.76%
+Accuracy reviewFeature: 89.55%
+Accuracy postSubmission: 98.59%
+Accuracy editFeature: 94.28%
+Accuracy deleteFeature: 97.45%
+Accuracy shareReferral: 96.01%
+Accuracy orderHistory: 98.60%
+Accuracy shipmentTracking: 99.79%
+Accuracy addressManagement: 97.20%
+Accuracy bookingFeature: 99.22%
+Accuracy forumDiscussion: 99.75%
+Accuracy reportFeedback: 97.94%
+Accuracy filterSort: 98.31%
+Accuracy categoryCollection: 98.91%
+Accuracy productListing: 98.43%
