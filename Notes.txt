@@ -42,6 +42,23 @@ I implemented the next points in my code:
 
 /////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
+Looking at the results of the fifth stage, where the number of epochs is increased to 20 and the batch size is set to 128, we can observe the following:
+
+Training Loss: The training loss decreases with each epoch, indicating that the model is learning and making progress in fitting the training data. The decreasing trend suggests that increasing the number of epochs allows the model to better optimize its parameters and improve its performance on the training set.
+
+Validation Loss: The validation loss initially decreases but then starts to fluctuate around a certain value. This fluctuation suggests that the model might be overfitting to the training data, as the validation loss does not continue to decrease with more epochs. The early stopping criterion is triggered, indicating that no improvement in the validation loss is observed.
+
+Comparing these results to the earlier stages, we can observe the following:
+
+The validation loss in the fifth stage is slightly higher compared to the previous stages, indicating that increasing the number of epochs and batch size might lead to a less optimal model in terms of generalization.
+
+The training loss continues to decrease with more epochs, suggesting that the model is still learning from the training data. However, the lack of improvement in the validation loss suggests that the model is not generalizing well to unseen data.
+
+Regarding the accuracy evaluation, if the accuracy results remained the same across all stages, it indicates that there might be an issue with the accuracy calculation. It is recommended to review the code that calculates the accuracy for each category and ensure that it is correctly implemented. Additionally, it is important to check the data and the labels to make sure they are properly aligned and mapped to the corresponding categories.
+
+ It would be beneficial to consider other evaluation metrics, such as precision, recall, and F1-score, to have a more comprehensive understanding of the model's performance for each category.
+///////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
+
 OLD:
 
 Test Loss: 1.6530
@@ -200,3 +217,13 @@ Accuracy reportFeedback: 97.94%
 Accuracy filterSort: 98.31%
 Accuracy categoryCollection: 98.91%
 Accuracy productListing: 98.43%
+
+for the report:
+Need to add more graphs: need to show the learning I did  and how I implemented it in my good.
+Need to show I learnt the whole way during the code development. need to speak about the reaserch I did.
+put graphs, show learnig curve visually 
+each thing i לייעל made better, show in the report.
+Need to save the model after it was trianed.
+In the final report, show the learning curve i had and the intensive reaserch I did in order to achieve the results.
+Show that the chnges I did durning the project helped my improve the model.
+SHow the reaserch I did.
