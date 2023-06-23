@@ -6,17 +6,11 @@ import torch.nn as nn
 import torch.backends.cuda
 from torch.utils.data import DataLoader, TensorDataset
 from torch.utils.data.dataloader import default_collate
-from sklearn.preprocessing import LabelEncoder
 from torch.nn.utils.rnn import pad_sequence
 from tensorflow.keras.preprocessing.text import Tokenizer
-from sklearn.metrics import precision_score, recall_score, f1_score, roc_auc_score, accuracy_score, classification_report
 from torch.optim.lr_scheduler import ReduceLROnPlateau
-
-
-def evaluate_predictions(predictions, targets):
-    report = classification_report(targets, predictions, zero_division=1)
-    print(report)
-
+import matplotlib.pyplot as plt
+import seaborn as sns
 
 # Check CUDA availability
 if torch.backends.cuda.is_built() and torch.cuda.is_available():
@@ -47,7 +41,7 @@ y = df[output_columns].values
 
 # Split the dataset into training, validation and testing sets
 X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.25, random_state=42)  # 0.25 x 0.8 = 0.2
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)  
 
 # Set the maximum sequence length and vocabulary size
 max_sequence_length = 100
@@ -86,7 +80,7 @@ model = ThreatModel(vocab_size, embedding_dim, 64, output_dim).to(device)
 
 # Define the loss function and optimizer
 criterion = nn.BCELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.01, weight_decay=0.01)
+optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.01)
 
 # Define the learning rate scheduler
 scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3, verbose=True)
@@ -109,9 +103,15 @@ best_val_loss = float('inf')
 patience = 5
 counter = 0
 
+train_accuracies = []
+val_accuracies = []
+train_losses_epoch = []
+
 for epoch in range(n_epochs):
     model.train()
     train_losses = []
+    train_correct = 0
+    train_total = 0
     for i, (train_input, train_target) in enumerate(train_dataloader):
         train_output = model(train_input)
         train_loss = criterion(train_output, train_target)
@@ -122,36 +122,42 @@ for epoch in range(n_epochs):
         loss.backward()
         optimizer.step()
         train_losses.append(loss.item())
+
+        # Calculate accuracy
+        predicted = torch.round(train_output.data)
+        correct_predictions = predicted.eq(train_target.data).view(-1)
+        train_correct += torch.sum(correct_predictions).item()
+        train_total += correct_predictions.shape[0]
+
+    mean_train_loss = np.mean(train_losses)
+    train_losses_epoch.append(mean_train_loss)
+    
+    train_accuracy = 100 * train_correct / train_total
+    train_accuracies.append(train_accuracy)
     print(f"Epoch {epoch+1}/{n_epochs}, Train Loss: {np.mean(train_losses)}")
 
     model.eval()
     val_losses = []
+    val_correct = 0
+    val_total = 0
     with torch.no_grad():
         for i, (val_input, val_target) in enumerate(val_dataloader):
             val_output = model(val_input)
             val_loss = criterion(val_output, val_target)
             val_losses.append(val_loss.item())
+            
+            # Calculate accuracy
+            predicted = torch.round(val_output.data)
+            correct_predictions = predicted.eq(val_target.data).view(-1)
+            val_correct += torch.sum(correct_predictions).item()
+            val_total += correct_predictions.shape[0]
+
+    # val_accuracy = 100 * val_correct / val_total
+    # val_accuracies.append(val_accuracy)
     mean_val_loss = np.mean(val_losses)
     print(f"Epoch {epoch+1}/{n_epochs}, Validation Loss: {mean_val_loss}")
 
     scheduler.step(mean_val_loss)  # Update the learning rate scheduler
-
-    model.eval()
-    test_predictions = []
-    test_labels = []
-    with torch.no_grad():
-        for test_input, test_target in test_dataloader:
-            test_output = model(test_input)
-            # Convert the output probabilities to binary labels using a threshold
-            test_predictions.append((test_output > 0.3).cpu().numpy())
-            # Convert the target labels to binary labels
-            test_labels.append(test_target.cpu().numpy())
-
-    # Convert the lists of arrays to single arrays
-    test_predictions = np.vstack(test_predictions)
-    test_labels = np.vstack(test_labels)
-
-    # evaluate_predictions(test_predictions, test_labels)
 
     if mean_val_loss < best_val_loss:
         best_val_loss = mean_val_loss
@@ -161,6 +167,14 @@ for epoch in range(n_epochs):
         if counter >= patience:
             print("Early stopping. No improvement in validation loss.")
             break
+
+plt.figure(figsize=(10, 5))
+plt.plot(train_losses_epoch, label='Training loss')
+plt.title('Loss over epochs')
+plt.xlabel('Epochs')
+plt.ylabel('Loss')
+plt.legend()
+plt.show()
 
 model.eval()
 test_losses = []
@@ -180,26 +194,7 @@ print(f"Test Loss: {mean_test_loss}")
 # Concatenate the predicted labels from all batches
 predicted_labels = np.concatenate(predicted_labels)
 
-# Task 1: Check if test dataset contains samples from all categories
-categories_present = np.unique(np.argmax(y_test, axis=1))
-if len(categories_present) == output_dim:
-    print("Test dataset contains samples from all categories.")
-else:
-    missing_categories = np.setdiff1d(np.arange(output_dim), categories_present)
-    print(f"Test dataset is missing samples from categories: {missing_categories}")
-
-# Task 2: Compare predicted labels with ground truth labels
-predicted_labels = np.argmax(predicted_labels, axis=1)
-ground_truth_labels = np.argmax(y_test, axis=1)
-discrepancies = np.where(predicted_labels != ground_truth_labels)[0]
-if len(discrepancies) == 0:
-    print("No discrepancies between predicted labels and ground truth labels.")
-else:
-    print(f"Discrepancies found between predicted labels and ground truth labels at indices: {discrepancies}")
-
-# Task 3: Count number of predicted samples for each category
-threshold = 0.5
-category_counts = [np.sum(predicted_labels == i) for i in range(len(output_columns))]
+# Count number of predicted samples for each category
 category_correct = [0] * len(output_columns)
 category_total = [0] * len(output_columns)
 
@@ -212,12 +207,11 @@ with torch.no_grad():
             category_correct[j] += (predicted[:, j] == val_target[:, j]).sum().item()
             category_total[j] += val_target.size(0)
 
+
 for i, column in enumerate(output_columns):
     if category_total[i] != 0:
         accuracy = category_correct[i] / category_total[i] * 100
-        predicted_count = category_counts[i]
     else:
         accuracy = 0
-        predicted_count = 0
     print(f"Accuracy {column}: {accuracy:.2f}%")
-    # print(f"Number of predicted samples for category {column}: {predicted_count}")
+
