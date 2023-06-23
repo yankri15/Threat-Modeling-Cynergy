@@ -238,3 +238,6 @@ labeled_df = remove_categories(labeled_df, 100)
 count_threats(labeled_df, keywordsPerFeature)
 
 labeled_df.to_csv("data.csv", index=False)
+
+with open('preprocessing_done.txt', 'w') as f:
+    f.write('done')
