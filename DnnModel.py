@@ -67,13 +67,35 @@ class ThreatModel(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.fc = nn.Linear(hidden_dim, output_dim)
         self.sigmoid = nn.Sigmoid()
+        self.relu = nn.ReLU()  # New activation function
 
     def forward(self, x):
         x = self.embedding(x)
         x, _ = self.lstm(x)
+        x = self.relu(x)  # Use ReLU before dropout
         x = self.dropout(x[:, -1, :])
         x = self.fc(x)
         return self.sigmoid(x)
+    
+# class ThreatModel(nn.Module):
+#     def __init__(self, vocab_size, embedding_dim, hidden_dim, output_dim, dropout=0.5, num_layers=3):
+#         super(ThreatModel, self).__init__()
+#         self.embedding = nn.Embedding(vocab_size, embedding_dim)
+#         self.lstm = nn.LSTM(embedding_dim, hidden_dim, num_layers=num_layers, batch_first=True, dropout=dropout)
+#         self.dropout = nn.Dropout(dropout)
+#         self.fc1 = nn.Linear(hidden_dim, hidden_dim)  # New fully connected layer
+#         self.fc2 = nn.Linear(hidden_dim, output_dim)
+#         self.relu = nn.ReLU()  # New ReLU activation function
+#         self.sigmoid = nn.Sigmoid()
+
+#     def forward(self, x):
+#         x = self.embedding(x)
+#         x, _ = self.lstm(x)
+#         x = self.dropout(x[:, -1, :])
+#         x = self.relu(self.fc1(x))  # Use ReLU activation after the first fully connected layer
+#         x = self.fc2(x)
+#         return self.sigmoid(x)
+
 
 output_dim = len(output_columns)
 model = ThreatModel(vocab_size, embedding_dim, 64, output_dim).to(device)
@@ -131,7 +153,7 @@ for epoch in range(n_epochs):
 
     mean_train_loss = np.mean(train_losses)
     train_losses_epoch.append(mean_train_loss)
-    
+
     train_accuracy = 100 * train_correct / train_total
     train_accuracies.append(train_accuracy)
     print(f"Epoch {epoch+1}/{n_epochs}, Train Loss: {np.mean(train_losses)}")
@@ -152,8 +174,6 @@ for epoch in range(n_epochs):
             val_correct += torch.sum(correct_predictions).item()
             val_total += correct_predictions.shape[0]
 
-    # val_accuracy = 100 * val_correct / val_total
-    # val_accuracies.append(val_accuracy)
     mean_val_loss = np.mean(val_losses)
     print(f"Epoch {epoch+1}/{n_epochs}, Validation Loss: {mean_val_loss}")
 
@@ -168,6 +188,30 @@ for epoch in range(n_epochs):
             print("Early stopping. No improvement in validation loss.")
             break
 
+# Testing loop
+model.eval()
+test_losses = []
+test_correct = 0
+test_total = 0
+with torch.no_grad():
+    for i, (test_input, test_target) in enumerate(test_dataloader):
+        test_output = model(test_input)
+        test_loss = criterion(test_output, test_target)
+        test_losses.append(test_loss.item())
+        
+        # Calculate accuracy
+        predicted = torch.round(test_output.data)
+        correct_predictions = predicted.eq(test_target.data).view(-1)
+        test_correct += torch.sum(correct_predictions).item()
+        test_total += correct_predictions.shape[0]
+
+mean_test_loss = np.mean(test_losses)
+print(f"Test Loss: {mean_test_loss}")
+
+test_accuracy = 100 * test_correct / test_total
+print(f"Test Accuracy: {test_accuracy:.2f}%")
+
+
 plt.figure(figsize=(10, 5))
 plt.plot(train_losses_epoch, label='Training loss')
 plt.title('Loss over epochs')
@@ -175,24 +219,6 @@ plt.xlabel('Epochs')
 plt.ylabel('Loss')
 plt.legend()
 plt.show()
-
-model.eval()
-test_losses = []
-predicted_labels = []
-with torch.no_grad():
-    for i, (test_input, test_target) in enumerate(test_dataloader):
-        test_output = model(test_input)
-        test_loss = criterion(test_output, test_target)
-        test_losses.append(test_loss.item())
-        
-        predicted_labels_batch = torch.round(test_output).cpu().numpy()
-        predicted_labels.append(predicted_labels_batch)
-
-mean_test_loss = np.mean(test_losses)
-print(f"Test Loss: {mean_test_loss}")
-
-# Concatenate the predicted labels from all batches
-predicted_labels = np.concatenate(predicted_labels)
 
 # Count number of predicted samples for each category
 category_correct = [0] * len(output_columns)
@@ -202,7 +228,7 @@ model.eval()
 with torch.no_grad():
     for i, (val_input, val_target) in enumerate(val_dataloader):
         val_output = model(val_input)
-        predicted = torch.round(val_output.data)
+        predicted = torch.round(val_output.data)        
         for j in range(len(output_columns)):
             category_correct[j] += (predicted[:, j] == val_target[:, j]).sum().item()
             category_total[j] += val_target.size(0)
@@ -215,3 +241,8 @@ for i, column in enumerate(output_columns):
         accuracy = 0
     print(f"Accuracy {column}: {accuracy:.2f}%")
 
+torch.save(model.state_dict(), "model.pth")
+print("Saved the model.")
+
+model = ThreatModel(vocab_size, embedding_dim, 64, output_dim).to(device)
+model.load_state_dict(torch.load("model.pth"))
