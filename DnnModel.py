@@ -67,36 +67,16 @@ class ThreatModel(nn.Module):
         self.dropout = nn.Dropout(dropout)
         self.fc = nn.Linear(hidden_dim, output_dim)
         self.sigmoid = nn.Sigmoid()
-        self.relu = nn.ReLU()  # New activation function
+        self.relu = nn.ReLU()  
 
     def forward(self, x):
         x = self.embedding(x)
         x, _ = self.lstm(x)
-        x = self.relu(x)  # Use ReLU before dropout
+        x = self.relu(x)  
         x = self.dropout(x[:, -1, :])
         x = self.fc(x)
         return self.sigmoid(x)
     
-# class ThreatModel(nn.Module):
-#     def __init__(self, vocab_size, embedding_dim, hidden_dim, output_dim, dropout=0.5, num_layers=3):
-#         super(ThreatModel, self).__init__()
-#         self.embedding = nn.Embedding(vocab_size, embedding_dim)
-#         self.lstm = nn.LSTM(embedding_dim, hidden_dim, num_layers=num_layers, batch_first=True, dropout=dropout)
-#         self.dropout = nn.Dropout(dropout)
-#         self.fc1 = nn.Linear(hidden_dim, hidden_dim)  # New fully connected layer
-#         self.fc2 = nn.Linear(hidden_dim, output_dim)
-#         self.relu = nn.ReLU()  # New ReLU activation function
-#         self.sigmoid = nn.Sigmoid()
-
-#     def forward(self, x):
-#         x = self.embedding(x)
-#         x, _ = self.lstm(x)
-#         x = self.dropout(x[:, -1, :])
-#         x = self.relu(self.fc1(x))  # Use ReLU activation after the first fully connected layer
-#         x = self.fc2(x)
-#         return self.sigmoid(x)
-
-
 output_dim = len(output_columns)
 model = ThreatModel(vocab_size, embedding_dim, 64, output_dim).to(device)
 
