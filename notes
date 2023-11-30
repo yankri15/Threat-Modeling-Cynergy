@@ -1,0 +1,30 @@
+Test Accuracy: 94.49%
+Accuracy rstPss: 95.73%
+Accuracy chatBot: 95.67%
+Accuracy accountSettings: 88.55%
+Accuracy contactForm: 96.37%
+Accuracy searchFeature: 96.63%
+Accuracy reviewFeature: 89.44%
+Accuracy editFeature: 94.12%
+Accuracy shareReferral: 96.03%
+Accuracy addressManagement: 97.46%
+
+new dataset:
+
+Category: rstPss
+Number of threats: 2268
+
+Category: chatBot
+Number of threats: 2311
+
+Category: accountSettings
+Number of threats: 5936
+
+Category: reviewFeature
+Number of threats: 5455
+
+Category: editFeature
+Number of threats: 3040
+
+Category: shareReferral
+Number of threats: 2033

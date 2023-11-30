@@ -11,6 +11,7 @@ from tensorflow.keras.preprocessing.text import Tokenizer
 from torch.optim.lr_scheduler import ReduceLROnPlateau
 import matplotlib.pyplot as plt
 import seaborn as sns
+from sklearn.metrics import precision_score, recall_score, f1_score
 
 # Check CUDA availability
 if torch.backends.cuda.is_built() and torch.cuda.is_available():
@@ -40,13 +41,13 @@ output_columns = df.columns[1:]  # Exclude "sentence" column
 y = df[output_columns].values
 
 # Split the dataset into training, validation and testing sets
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42)  
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42, shuffle=True)
+X_train, X_val, y_train, y_val = train_test_split(X_train, y_train, test_size=0.2, random_state=42, shuffle=True)
 
 # Set the maximum sequence length and vocabulary size
 max_sequence_length = 100
 vocab_size = 10000
-embedding_dim = 50
+embedding_dim = 64
 
 # Tokenize and pad the input sequences
 tokenizer = Tokenizer(num_words=vocab_size, oov_token="<OOV>")
@@ -60,40 +61,74 @@ X_test = pad_sequence([torch.tensor(seq) for seq in X_test], batch_first=True, p
 
 # Create the PyTorch model
 class ThreatModel(nn.Module):
-    def __init__(self, vocab_size, embedding_dim, hidden_dim, output_dim, dropout=0.5, num_layers=2):
+    # def __init__(self, vocab_size, embedding_dim, hidden_dim, hidden_dim2, output_dim, dropout=0.3, num_layers=10):
+    #     super(ThreatModel, self).__init__()
+    #     self.embedding = nn.Embedding(vocab_size, embedding_dim)
+    #     self.gru = nn.GRU(embedding_dim, hidden_dim, num_layers=num_layers, batch_first=True, dropout=dropout)
+    #     self.dropout = nn.Dropout(dropout)
+    #     self.fc1 = nn.Linear(hidden_dim, hidden_dim2)
+    #     self.fc2 = nn.Linear(hidden_dim2, output_dim)
+    #     self.sigmoid = nn.Sigmoid()
+
+    # def forward(self, x):
+    #     x = self.embedding(x)
+    #     out, _ = self.gru(x)
+    #     out = torch.tanh(self.fc1(out[:, -1, :]))
+    #     # out = self.dropout(out)
+    #     out = self.fc2(out)
+    #     out = self.dropout(out)
+    #     return self.sigmoid(out)
+
+    def __init__(self, vocab_size, embedding_dim, hidden_dim, output_dim, dropout=0.3, num_layers=6):
         super(ThreatModel, self).__init__()
         self.embedding = nn.Embedding(vocab_size, embedding_dim)
         self.lstm = nn.LSTM(embedding_dim, hidden_dim, num_layers=num_layers, batch_first=True, dropout=dropout)
+        # self.gru = nn.GRU(embedding_dim, hidden_dim, num_layers=num_layers, batch_first=True, dropout=dropout)
         self.dropout = nn.Dropout(dropout)
         self.fc = nn.Linear(hidden_dim, output_dim)
         self.sigmoid = nn.Sigmoid()
         self.relu = nn.ReLU()  
+        # self.tanh = nn.Tanh()
+
 
     def forward(self, x):
         x = self.embedding(x)
         x, _ = self.lstm(x)
         x = self.relu(x)  
+        # x = self.tanh(x)
         x = self.dropout(x[:, -1, :])
         x = self.fc(x)
         return self.sigmoid(x)
     
 output_dim = len(output_columns)
 model = ThreatModel(vocab_size, embedding_dim, 64, output_dim).to(device)
+# hidden_dim2 = 64  
+# model = ThreatModel(vocab_size, embedding_dim, 64, hidden_dim2, output_dim).to(device)
+
 
 # Define the loss function and optimizer
-criterion = nn.BCELoss()
-optimizer = torch.optim.Adam(model.parameters(), lr=0.001, weight_decay=0.01)
+# criterion = nn.BCELoss()
+# Calculate class weights for 6 categories
+total_threats = 2268 + 2311 + 5936 + 5455 + 3040 + 2033
+class_weights = [total_threats / threats for threats in [2268, 2311, 5936, 5455, 3040, 2033]]
+class_weights = torch.FloatTensor(class_weights).to(device)
+
+# Use class weights in the loss function
+criterion = nn.BCEWithLogitsLoss(pos_weight=class_weights)
+
+optimizer = torch.optim.Adam(model.parameters(), lr=0.005, weight_decay=0.01)
+
 
 # Define the learning rate scheduler
-scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=3, verbose=True)
+scheduler = ReduceLROnPlateau(optimizer, mode='min', factor=0.1, patience=5, verbose=True)
 
 # Prepare the data for DataLoader
 train_dataset = TensorDataset(X_train, torch.tensor(y_train).float())
 val_dataset = TensorDataset(X_val, torch.tensor(y_val).float())
 test_dataset = TensorDataset(X_test, torch.tensor(y_test).float())
 
-n_epochs = 20
-batch_size = 128
+n_epochs = 60
+batch_size = 64
 
 # Create the DataLoader
 train_dataloader = DataLoader(train_dataset, batch_size=batch_size, shuffle=True, collate_fn=collate_fn)
@@ -169,10 +204,28 @@ for epoch in range(n_epochs):
             break
 
 # Testing loop
+# model.eval()
+# test_losses = []
+# test_correct = 0
+# test_total = 0
+# with torch.no_grad():
+#     for i, (test_input, test_target) in enumerate(test_dataloader):
+#         test_output = model(test_input)
+#         test_loss = criterion(test_output, test_target)
+#         test_losses.append(test_loss.item())
+        
+#         # Calculate accuracy
+#         predicted = torch.round(test_output.data)
+#         correct_predictions = predicted.eq(test_target.data).view(-1)
+#         test_correct += torch.sum(correct_predictions).item()
+#         test_total += correct_predictions.shape[0]
+# Testing loop
 model.eval()
 test_losses = []
 test_correct = 0
 test_total = 0
+all_predictions = []  # list to store all predictions
+all_targets = []  # list to store all targets
 with torch.no_grad():
     for i, (test_input, test_target) in enumerate(test_dataloader):
         test_output = model(test_input)
@@ -180,10 +233,37 @@ with torch.no_grad():
         test_losses.append(test_loss.item())
         
         # Calculate accuracy
-        predicted = torch.round(test_output.data)
+        # predicted = torch.round(test_output.data)
+        threshold = 0.5  # adjust this threshold to control the sensitivity of your model's predictions
+        predicted = (test_output.data > threshold).float()
+        all_predictions.append(predicted.cpu().numpy())  # append predictions to the list
+        all_targets.append(test_target.cpu().numpy())  # append targets to the list
         correct_predictions = predicted.eq(test_target.data).view(-1)
         test_correct += torch.sum(correct_predictions).item()
         test_total += correct_predictions.shape[0]
+
+# Flatten the 2D arrays to 1D arrays
+all_predictions_flat = np.concatenate(all_predictions).ravel()
+all_targets_flat = np.concatenate(all_targets).ravel()
+
+# Find the unique labels predicted by the model
+unique_labels = np.unique(all_predictions_flat)
+
+# Calculate metrics for each unique label
+precision = precision_score(all_targets_flat, all_predictions_flat, labels=unique_labels, average=None, zero_division=0)
+recall = recall_score(all_targets_flat, all_predictions_flat, labels=unique_labels, average=None, zero_division=0)
+f1 = f1_score(all_targets_flat, all_predictions_flat, labels=unique_labels, average=None, zero_division=0)
+
+# Print metrics for each unique label
+for i in range(len(unique_labels)):
+    label = output_columns[unique_labels[i]]
+    print(f"Category: {label}")
+    print(f"Precision: {precision[i]}")
+    print(f"Recall: {recall[i]}")
+    print(f"F1-Score: {f1[i]}\n")
+
+
+
 
 mean_test_loss = np.mean(test_losses)
 print(f"Test Loss: {mean_test_loss}")
@@ -201,28 +281,29 @@ plt.legend()
 plt.show()
 
 # Count number of predicted samples for each category
-category_correct = [0] * len(output_columns)
-category_total = [0] * len(output_columns)
+# category_correct = [0] * len(output_columns)
+# category_total = [0] * len(output_columns)
 
-model.eval()
-with torch.no_grad():
-    for i, (val_input, val_target) in enumerate(val_dataloader):
-        val_output = model(val_input)
-        predicted = torch.round(val_output.data)        
-        for j in range(len(output_columns)):
-            category_correct[j] += (predicted[:, j] == val_target[:, j]).sum().item()
-            category_total[j] += val_target.size(0)
+# model.eval()
+# with torch.no_grad():
+#     for i, (val_input, val_target) in enumerate(val_dataloader):
+#         val_output = model(val_input)
+#         predicted = torch.round(val_output.data)        
+#         for j in range(len(output_columns)):
+#             category_correct[j] += (predicted[:, j] == val_target[:, j]).sum().item()
+#             category_total[j] += val_target.size(0)
 
 
-for i, column in enumerate(output_columns):
-    if category_total[i] != 0:
-        accuracy = category_correct[i] / category_total[i] * 100
-    else:
-        accuracy = 0
-    print(f"Accuracy {column}: {accuracy:.2f}%")
+# for i, column in enumerate(output_columns):
+#     if category_total[i] != 0:
+#         accuracy = category_correct[i] / category_total[i] * 100
+#     else:
+#         accuracy = 0
+#     print(f"Accuracy {column}: {accuracy:.2f}%")
 
-torch.save(model.state_dict(), "model.pth")
-print("Saved the model.")
 
-model = ThreatModel(vocab_size, embedding_dim, 64, output_dim).to(device)
-model.load_state_dict(torch.load("model.pth"))
+# torch.save(model.state_dict(), "model.pth")
+# print("Saved the model.")
+
+# model = ThreatModel(vocab_size, embedding_dim, 64, output_dim).to(device)
+# model.load_state_dict(torch.load("model.pth"))
