@@ -211,6 +211,20 @@ def remove_categories(df, min_threats):
     
     return df
 
+def remove_zero_labels(df):
+    """Removes rows from the dataframe where all labels are zero (no threat)."""
+    # Your label columns start from the second column onward
+    label_columns = df.columns[1:]
+    
+    # Sum across the label columns for each row
+    # If the sum is zero, all labels are zero
+    # The resulting series, `rows_to_keep`, is True for rows where at least one label is not zero
+    rows_to_keep = df[label_columns].sum(axis=1) != 0
+    
+    # Keep only the rows where `rows_to_keep` is True
+    df = df[rows_to_keep]
+    
+    return df
 
 train_paths = [
     "Datasets/Documentation/CyberArk-and-Workfusion-IA2017Sunbird-integration-v3.pdf",
@@ -232,7 +246,8 @@ for path in train_paths:
 
 labeled_df = label_threats(processed_sentences, keywords, keywordsPerFeature)
 labeled_df = clean_dataframe(labeled_df)
-labeled_df = remove_categories(labeled_df, 100)
+labeled_df = remove_categories(labeled_df, 2000)
+labeled_df = remove_zero_labels(labeled_df)
 
 
 count_threats(labeled_df, keywordsPerFeature)
